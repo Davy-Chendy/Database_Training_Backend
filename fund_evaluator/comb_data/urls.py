@@ -7,6 +7,7 @@ app_name = 'comb_data'
 
 urlpatterns = [
     path('', views.comb_data_list, name='list'),
+    path('<str:name>/', views.comb_data_detail, name='list'),
     path('comb_data_spider/',comb_data_spider.spider,name='spider'),
     path('delete/',db_func.db_delete,name='delete'),
 ]

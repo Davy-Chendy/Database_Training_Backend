@@ -17,7 +17,15 @@ def trans_data2(s):
 
 
 def comb_data_list(request):
-    res = CombData.objects.all().values()
+    res = CombData.objects.values('name')
+    res = list(res)
+    data = {"result": res}
+
+    return JsonResponse(data, safe=False)
+
+
+def comb_data_detail(request,name):
+    res = CombData.objects.filter(name=name).values()
     res = list(res)
     index = 0
     for data in res:
