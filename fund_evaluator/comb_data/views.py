@@ -2,7 +2,6 @@ from django.http import JsonResponse
 from comb_data.models import CombData
 
 
-
 def trans_data(s):
     for i in range(0, 4):
         s[i] = float(s[i])
