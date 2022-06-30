@@ -1,12 +1,15 @@
 import requests
 import json
-
+import urllib
 # import urllib.request
-# import json
+import json
 import requests
 from comb_data.models import CombData
 from django.http import HttpResponse
 import datetime
+import time
+
+
 
 def getAchieve(subAccountNo):
     url = 'https://tradeapilvs6.1234567.com.cn/User/SubA/SubAGradingIndexDetailV2'
@@ -23,14 +26,14 @@ def getAchieve(subAccountNo):
         'User-Agent': 'okhttp/3.12.13'
     }
     post_param_data = {
-        'appVersion': '6.5.5',
+        'appVersion': '6.5.6',
         'product': 'EFund',
-        'ServerVersion': '6.5.5',
+        'ServerVersion': '6.5.6',
         'Passportid': None,
         'SubAccountNo': subAccountNo,
         'CustomerNo': None,
         'deviceid': 'ff5d271dfa24a769bf5c3c6180447d86%7C%7Ciemi_tluafed_me',
-        'version': '6.5.5',
+        'version': '6.5.6',
         'PhoneType': 'Android10',
         'MobileKey': 'ff5d271dfa24a769bf5c3c6180447d86%7C%7Ciemi_tluafed_me',
         'UserId': None,
@@ -95,14 +98,14 @@ def getPageVIP(pageNum):
     }
     get_param_data = {
         'pageCount': 20,
-        'condition': 'ACCSTY%3AS1%2CVIP%3A1',
+        'condition': 'ACCSTY%3AS1',
         'product': 'EFund',
-        'appVersion': '6.5.5',
+        'appVersion': '6.5.6',
         'plat': 'Iphone',
         'orderField': 'MPINGFEN%3Adesc',
         'deviceid': '1234567890',
         'pageNum': pageNum,
-        'version': '6.5.5'
+        'version': '6.5.6'
     }
     response = requests.get(url=url,headers=head_info,params=get_param_data)
 
@@ -128,11 +131,22 @@ def getPageVIP(pageNum):
 
     return list
 
-def getAllVIP():
+def getAllVIP(num):
     list = []
-    for pageNum in range(1,21):
-        pageList = getPageVIP(pageNum)
-        list.extend(pageList)
+    pageNum = num
+
+    # # 看所有的页
+    # while True:
+    #     pageList = getPageVIP(pageNum)
+    #     if len(pageList) != 0:
+    #         list.extend(pageList)
+    #         pageNum = pageNum + 1
+    #     else:
+    #         break
+
+    # 只看一页
+    pageList = getPageVIP(pageNum)
+    list.extend(pageList)
 
     return list
 
@@ -158,7 +172,7 @@ def getFansCount(passportID):
         'plat': 'Android',
         'userid': None,
         'deviceid': 'ff5d271dfa24a769bf5c3c6180447d86%7C%7Ciemi_tluafed_me',
-        'version': '6.5.5',
+        'version': '6.5.6',
         'passportid': None,
         'username': None
     }
@@ -183,15 +197,15 @@ def getHistory(subAccountNo):
         'User-Agent': 'okhttp/3.12.13'
     }
     post_param_data = {
-        'appVersion': '6.5.5',
+        'appVersion': '6.5.6',
         'product': 'EFund',
-        'ServerVersion': '6.5.5',
+        'ServerVersion': '6.5.6',
         'IntervalType': '9',
         'Passportid': None,
         'SubAccountNo': subAccountNo,
         'CustomerNo': None,
         'deviceid': 'ff5d271dfa24a769bf5c3c6180447d86%7C%7Ciemi_tluafed_me',
-        'version': '6.5.5',
+        'version': '6.5.6',
         'PhoneType': 'Android10',
         'SubCustomerNo': subAccountNo,
         'MobileKey': 'ff5d271dfa24a769bf5c3c6180447d86%7C%7Ciemi_tluafed_me',
@@ -203,88 +217,259 @@ def getHistory(subAccountNo):
         'customerNo': None
     }
     response = requests.post(url=url, headers=head_info, data=post_param_data)
-    # print(response.content.decode('utf-8'))
     result = response.json()['Data']
     list = []
+    list2 = []
 
     for GraphSpot in result['GraphSpotList']:
         dict = {}
-        dict['NavDate'] = int(GraphSpot['AccountNav']['NavDate'][6:19])
-        dict['Rate'] = GraphSpot['AccountNav']['Rate']
+        dict['data'] = GraphSpot['AccountNav']['NavDate']
+        dict['value'] = GraphSpot['AccountNav']['Rate']
         list.append(dict)
+
+        dict2 = {}
+        timeArray = time.localtime(int(GraphSpot['AccountNav']['NavDate'][6:16]))
+        datestr = time.strftime('%Y-%m-%d', timeArray)
+        dict2['date'] = datestr
+        dict2['Nav'] = GraphSpot['AccountNav']['Nav']
+        list2.append(dict2)
+
+    return list, list2
+
+def getPageWarehouseAdjustment(subAccountNo, name, TimePoint, Content_Length):
+    url = 'https://jijinbaapi.eastmoney.com/FundMCApi/FundMBNew/FZH15DynamicPostList2'
+    head_info = {
+        'igggggnoreburst': 'true',
+        'Referer': 'https://mpservice.com/a461099f332046f0b32783c5d3d980a8/release/pages/wareHouse/index?id='+subAccountNo+'&name='+urllib.parse.quote(name)+'&subType=0&isSelf=false',
+        'gtoken': 'ceaf-fb866d2ed4b7addd2b98075f4fd9a432',
+        'clientInfo': 'ttjj-CDY-AN00-Android-10',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Content_Length,
+        'Host': 'jijinbaapi.eastmoney.com',
+        'Connection': 'Keep-Alive',
+        'Accept-Encoding': 'gzip',
+        'User-Agent': 'okhttp/3.12.13'
+    }
+    post_param_data = {
+        'appVersion': '6.5.6',
+        'product': 'EFund',
+        'ServerVersion': '6.5.6',
+        'TimePoint': TimePoint,
+        'Passportid': None,
+        'pageSize': 21,
+        'CustomerNo': None,
+        'deviceid': 'ff5d271dfa24a769bf5c3c6180447d86%7C%7Ciemi_tluafed_me',
+        'version': '6.5.6',
+        'ZHCode' : subAccountNo,
+        'PhoneType': 'Android10',
+        'MobileKey': 'ff5d271dfa24a769bf5c3c6180447d86%7C%7Ciemi_tluafed_me',
+        'UserId': None,
+        'ApiType': 4,
+        'UToken': None,
+        'plat': 'Android',
+        'CToken': None,
+        'customerNo': None
+    }
+    response = requests.post(url=url, headers=head_info, data=post_param_data)
+    result = response.json()['Data']
+    list = []
+    i = 0
+    TimePointStr = '0'
+    if result != None:
+        for warehouseAdjustmentRecode in result:
+            if warehouseAdjustmentRecode['warehouseRecord']['BusinName'] == '卖出':
+                dict = {}
+                dict['dateTime'] = warehouseAdjustmentRecode['dateTime']
+                dict['FundCode'] = warehouseAdjustmentRecode['warehouseRecord']['FundCode']
+                dict['FundName'] = warehouseAdjustmentRecode['warehouseRecord']['FundName']
+                list.append(dict)
+            i = i+1
+            if i == 20:
+                TimePointStr = warehouseAdjustmentRecode['timePointStr']
+
+    return list, TimePointStr, i
+
+def getAllWarehouseAdjustment(subAccountNo, name):
+    list = []
+    TimePoint = '0'
+    pageList, TimePointStr, i = getPageWarehouseAdjustment(subAccountNo, name, TimePoint, str(334))
+    TimePoint = TimePointStr
+    list.extend(pageList)
+    while i == 21:
+        pageList, TimePointStr, i = getPageWarehouseAdjustment(subAccountNo, name, TimePoint, str(352))
+        TimePoint = TimePointStr
+        list.extend(pageList)
 
     return list
 
+def getFundHistory(fundCode, fundName, date):
+    pageIndex = 1
+    finish = 0
+    list = []
+    while True:
+        if pageIndex <= 10:
+            contentLength = '334'
+        else:
+            contentLength = '335'
+
+        url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNHisNetList'
+        head_info = {
+            'igggggnoreburst': 'true',
+            'Referer': 'https://mpservice.com/516939c37bdb4ba2b1138c50cf69a2e1/release/pages/fundHistoryWorth/index?fundCode='+fundCode+'&fundName='+urllib.parse.quote(fundName),
+            'gtoken': 'ceaf-fb866d2ed4b7addd2b98075f4fd9a432',
+            'clientInfo': 'ttjj-CDY-AN00-Android-10',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': contentLength,
+            'Host': 'fundmobapi.eastmoney.com',
+            'Connection': 'Keep-Alive',
+            'Accept-Encoding': 'gzip',
+            'User-Agent': 'okhttp/3.12.13',
+        }
+        post_param_data = {
+            'product': 'EFund',
+            'appVersion': '6.5.6',
+            'serverVersion': '6.5.6',
+            'pageSize': 20,
+            'FCODE': fundCode,
+            'version': '6.5.6',
+            'deviceid': 'ff5d271dfa24a769bf5c3c6180447d86%7C%7Ciemi_tluafed_me',
+            'userId': 'uid',
+            'cToken': 'ctoken',
+            'MobileKey': 'ff5d271dfa24a769bf5c3c6180447d86%7C%7Ciemi_tluafed_me',
+            'pageIndex': pageIndex,
+            'appType': 'ttjj',
+            'OSVersion': 10,
+            'plat': 'Android',
+            'IsShareNet': 'true',
+            'passportid': None,
+            'uToken': 'utoken'
+        }
+        response = requests.post(url=url, headers=head_info, data=post_param_data)
+        result = response.json()['Datas']
+
+        pageIndex = pageIndex + 1
+
+        if len(result) != 0:
+            for GraphSpot in result:
+                if len(list) == 0:
+                    list.append(GraphSpot['DWJZ'])
+                FSRQ = datetime.datetime.strptime(GraphSpot['FSRQ'], '%Y-%m-%d')
+                if FSRQ > date:
+                    continue
+                elif FSRQ == date:
+                    list.append(GraphSpot['DWJZ'])
+                    finish = finish + 1
+                    break
+                elif FSRQ < date:
+                    finish = finish + 1
+                    break
+            if finish > 0:
+                break
+        else:
+            break
+
+    return list
+
+
 def spider(request):
-    list = getAllVIP()
-    for subAccount in list:
-        subAccount['user_fans_count'] = getFansCount(subAccount['passportID'])
-        subAccount['GraphSpotList'] = getHistory(subAccount['subAccountNo'])
+    # 第17页没爬
+    num = int(18)
+    while(num<70):
+        list = getAllVIP(num)
+        for subAccount in list:
+            subAccount['user_fans_count'] = getFansCount(subAccount['passportID'])
+            subAccount['GraphSpotList'],rise = getHistory(subAccount['subAccountNo'])
+            subAccount['warehouseRecord'] = getAllWarehouseAdjustment(subAccount['subAccountNo'],subAccount['subAccountName'])
+            warehouseRecordList = getAllWarehouseAdjustment(subAccount['subAccountNo'], subAccount['subAccountName'])
+            warehouseAdjustmentSuccess = 0
+            warehouseAdjustmentTotal = 0
+            for warehouseRecord in warehouseRecordList:
+                date = datetime.datetime.strptime(warehouseRecord['dateTime'], '%Y年%m月%d日')
+                datestr = date.strftime('%Y-%m-%d')
+                warehouseRecordData = getFundHistory(warehouseRecord['FundCode'], warehouseRecord['FundName'], date)
+                if len(warehouseRecordData) == 2:
+                    for dict in rise:
+                        if datestr == dict['date']:
+                            warehouseAdjustmentTotal = warehouseAdjustmentTotal + 1
+                            if (float(rise[-1]['Nav']) - float(dict['Nav'])) / float(dict['Nav']) - (
+                                    float(warehouseRecordData[0]) - float(warehouseRecordData[1])) / float(
+                                    warehouseRecordData[1]) > 0:
+                                warehouseAdjustmentSuccess = warehouseAdjustmentSuccess + 1
+                            break
+            if warehouseAdjustmentTotal == 0:
+                subAccount['level'] = 0
+            else:
+                subAccount['level'] = warehouseAdjustmentSuccess / warehouseAdjustmentTotal
+            print('爬完某个组合的所有数据')
     # print(list)
 
-    result = {}
-    result['info'] = list
-    #print(list)
+        result = {}
+        result['info'] = list
+        #print(list)
 
-    for data in list:
-        GraphSpotList ={}
-        GraphSpotList['rise']=data['GraphSpotList']
+        for data in list:
+            GraphSpotList ={}
+            GraphSpotList['rise']=data['GraphSpotList']
 
-        saveData = CombData()
-        saveData.subAccountNo = data['subAccountNo']
-        saveData.name = data['subAccountName']
-        saveData.nickname = data['nicheng']
-        saveData.passportID = data['passportID']
-        saveData.AccountExistTime = data['AccountExistTime']
-        saveData.AssetVol = data['AssetVol']
+            saveData = CombData()
+            saveData.subAccountNo = data['subAccountNo']
+            saveData.name = data['subAccountName']
+            saveData.nickname = data['nicheng']
+            saveData.passportID = data['passportID']
+            saveData.AccountExistTime = data['AccountExistTime']
+            saveData.AssetVol = data['AssetVol']
+            saveData.level  = data['level']
 
-        # 处理drawdown
-        drawdown = []
-        drawdown.append(data['SubIntervalIndexDict']['NearlyOneMonth']['MaxPullback'])
-        drawdown.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['MaxPullback'])
-        drawdown.append(data['SubIntervalIndexDict']['NearlySixMonth']['MaxPullback'])
-        drawdown.append(data['SubIntervalIndexDict']['NearlyOneYear']['MaxPullback'])
-        MaxPullback = {}
-        MaxPullback['drawdown'] = drawdown
-        saveData.drawdown = MaxPullback
+            # 处理drawdown
+            drawdown = []
+            drawdown.append(data['SubIntervalIndexDict']['NearlyOneMonth']['MaxPullback'])
+            drawdown.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['MaxPullback'])
+            drawdown.append(data['SubIntervalIndexDict']['NearlySixMonth']['MaxPullback'])
+            drawdown.append(data['SubIntervalIndexDict']['NearlyOneYear']['MaxPullback'])
+            MaxPullback = {}
+            MaxPullback['drawdown'] = drawdown
+            saveData.drawdown = MaxPullback
 
-        # 处理sharpeRatio
-        sharpeRatio = []
-        sharpeRatio.append(data['SubIntervalIndexDict']['NearlyOneMonth']['SharpeRatio'])
-        sharpeRatio.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['SharpeRatio'])
-        sharpeRatio.append(data['SubIntervalIndexDict']['NearlySixMonth']['SharpeRatio'])
-        sharpeRatio.append(data['SubIntervalIndexDict']['NearlyOneYear']['SharpeRatio'])
-        SharpeRatio = {}
-        SharpeRatio['sharpeRatio'] = sharpeRatio
-        saveData.sharpeRatio = SharpeRatio
+            # 处理sharpeRatio
+            sharpeRatio = []
+            sharpeRatio.append(data['SubIntervalIndexDict']['NearlyOneMonth']['SharpeRatio'])
+            sharpeRatio.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['SharpeRatio'])
+            sharpeRatio.append(data['SubIntervalIndexDict']['NearlySixMonth']['SharpeRatio'])
+            sharpeRatio.append(data['SubIntervalIndexDict']['NearlyOneYear']['SharpeRatio'])
+            SharpeRatio = {}
+            SharpeRatio['sharpeRatio'] = sharpeRatio
+            saveData.sharpeRatio = SharpeRatio
 
-        # 处理volatility
-        volatility = []
-        volatility.append(data['SubIntervalIndexDict']['NearlyOneMonth']['Volatility'])
-        volatility.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['Volatility'])
-        volatility.append(data['SubIntervalIndexDict']['NearlySixMonth']['Volatility'])
-        volatility.append(data['SubIntervalIndexDict']['NearlyOneYear']['Volatility'])
-        Volatility = {}
-        Volatility['volatility'] = volatility
-        saveData.volatility = Volatility
+            # 处理volatility
+            volatility = []
+            volatility.append(data['SubIntervalIndexDict']['NearlyOneMonth']['Volatility'])
+            volatility.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['Volatility'])
+            volatility.append(data['SubIntervalIndexDict']['NearlySixMonth']['Volatility'])
+            volatility.append(data['SubIntervalIndexDict']['NearlyOneYear']['Volatility'])
+            Volatility = {}
+            Volatility['volatility'] = volatility
+            saveData.volatility = Volatility
 
-        # 处理earnDrawdownRatio
-        earnDrawdownRatio = []
-        earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlyOneMonth']['ReturnPullbackRatio'])
-        earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['ReturnPullbackRatio'])
-        earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlySixMonth']['ReturnPullbackRatio'])
-        earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlyOneYear']['ReturnPullbackRatio'])
-        ReturnPullbackRatio = {}
-        ReturnPullbackRatio['earnDrawdownRatio'] = earnDrawdownRatio
-        saveData.earnDrawdownRatio = ReturnPullbackRatio
+            # 处理earnDrawdownRatio
+            earnDrawdownRatio = []
+            earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlyOneMonth']['ReturnPullbackRatio'])
+            earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['ReturnPullbackRatio'])
+            earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlySixMonth']['ReturnPullbackRatio'])
+            earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlyOneYear']['ReturnPullbackRatio'])
+            ReturnPullbackRatio = {}
+            ReturnPullbackRatio['earnDrawdownRatio'] = earnDrawdownRatio
+            saveData.earnDrawdownRatio = ReturnPullbackRatio
 
-        Compose = {}
-        Compose['compose'] = data['compose']
-        saveData.compose = Compose
+            Compose = {}
+            Compose['compose'] = data['compose']
+            saveData.compose = Compose
 
-        saveData.user_fans_count = data['user_fans_count']
-        saveData.rise = GraphSpotList
-        saveData.save()
+            saveData.user_fans_count = data['user_fans_count']
+            saveData.rise = GraphSpotList
+            saveData.save()
+
+        print('爬完第'+str(num)+'页')
+        num = num+1
 
     return HttpResponse("<p>爬虫爬取成功！</p>")
 

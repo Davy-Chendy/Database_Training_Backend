@@ -35,6 +35,7 @@ def comb_data_detail(request,name):
         res[index]['earnDrawdownRatio'] = trans_data(data['earnDrawdownRatio']['earnDrawdownRatio'])
         res[index]['rise'] = data['rise']['rise']
         res[index]['compose'] = data['compose']['compose']
+        res[index]['level'] = float(data['level'])
         index = index + 1
     # print(res)
     data = {"result": res}
