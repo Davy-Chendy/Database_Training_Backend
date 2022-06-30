@@ -34,6 +34,12 @@ def comb_data_detail(request,name):
         res[index]['volatility'] = trans_data2(data['volatility']['volatility'])
         res[index]['earnDrawdownRatio'] = trans_data(data['earnDrawdownRatio']['earnDrawdownRatio'])
         res[index]['rise'] = data['rise']['rise']
+        num = 0
+        for date in res[index]['rise']:
+            # print(date)
+            # print(res[index]['rise'][num]['data'])
+            res[index]['rise'][num]['data'] = date['data'][6:19]
+            num = num+1
         res[index]['compose'] = data['compose']['compose']
         res[index]['level'] = float(data['level'])
         index = index + 1
