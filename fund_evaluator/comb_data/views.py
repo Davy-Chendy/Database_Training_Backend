@@ -42,6 +42,7 @@ def comb_data_detail(request,name):
             num = num+1
         res[index]['compose'] = data['compose']['compose']
         res[index]['level'] = float(data['level'])
+        res[index]['average_holding_days'] = int(data['average_holding_days'])
         index = index + 1
     # print(res)
     data = {"result": res}

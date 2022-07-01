@@ -18,6 +18,7 @@ class CombData(models.Model):
     user_fans_count = models.CharField(max_length=100)
     rise = models.JSONField(null=True)
     level = models.CharField(max_length=100,null=True)
+    average_holding_days = models.CharField(max_length=10,null=True)
 
     def __str__(self):
         # return self.title 将文章标题返回

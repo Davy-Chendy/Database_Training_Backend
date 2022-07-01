@@ -271,8 +271,10 @@ def getPageWarehouseAdjustment(subAccountNo, name, TimePoint, Content_Length):
         'customerNo': None
     }
     response = requests.post(url=url, headers=head_info, data=post_param_data)
+    # print(response.content.decode('utf-8'))
     result = response.json()['Data']
-    list = []
+    list = [] # 卖出
+    list2 = [] # 买入
     i = 0
     TimePointStr = '0'
     if result != None:
@@ -283,24 +285,57 @@ def getPageWarehouseAdjustment(subAccountNo, name, TimePoint, Content_Length):
                 dict['FundCode'] = warehouseAdjustmentRecode['warehouseRecord']['FundCode']
                 dict['FundName'] = warehouseAdjustmentRecode['warehouseRecord']['FundName']
                 list.append(dict)
+            elif warehouseAdjustmentRecode['warehouseRecord']['BusinName'] == '买入':
+                dict = {}
+                dict['dateTime'] = warehouseAdjustmentRecode['dateTime']
+                dict['FundCode'] = warehouseAdjustmentRecode['warehouseRecord']['FundCode']
+                dict['FundName'] = warehouseAdjustmentRecode['warehouseRecord']['FundName']
+                list2.append(dict)
             i = i+1
             if i == 20:
                 TimePointStr = warehouseAdjustmentRecode['timePointStr']
 
-    return list, TimePointStr, i
+    return list, list2, TimePointStr, i
 
 def getAllWarehouseAdjustment(subAccountNo, name):
-    list = []
+    list = [] # 卖出
+    list2 = [] # 买入
+    FundDict = {} # 基金字典
     TimePoint = '0'
-    pageList, TimePointStr, i = getPageWarehouseAdjustment(subAccountNo, name, TimePoint, str(334))
+    pageList, pageList2, TimePointStr, i = getPageWarehouseAdjustment(subAccountNo, name, TimePoint, str(334))
     TimePoint = TimePointStr
     list.extend(pageList)
+    list2.extend(pageList2)
     while i == 21:
-        pageList, TimePointStr, i = getPageWarehouseAdjustment(subAccountNo, name, TimePoint, str(352))
+        pageList, pageList2, TimePointStr, i = getPageWarehouseAdjustment(subAccountNo, name, TimePoint, str(352))
         TimePoint = TimePointStr
         list.extend(pageList)
+        list2.extend(pageList2)
 
-    return list
+    for PurchaseRecord in list2[::-1]:
+        if PurchaseRecord['FundCode'] not in FundDict:
+            date = datetime.datetime.strptime(PurchaseRecord['dateTime'], '%Y年%m月%d日')
+            FundDict[PurchaseRecord['FundCode']] = {}
+            FundDict[PurchaseRecord['FundCode']]['PurchaseTime'] = date
+    for SalesRecord in list[::-1]:
+        if SalesRecord['FundCode'] in FundDict:
+            date = datetime.datetime.strptime(SalesRecord['dateTime'], '%Y年%m月%d日')
+            FundDict[SalesRecord['FundCode']]['SalesTime'] = date
+
+    sum = datetime.datetime.now() - datetime.datetime.now() # 持有天数总和
+    count = 0 # 参与持有天数计算计算的基金数量
+    for key, values in FundDict.items():
+        count = count + 1
+        if 'SalesTime' in values:
+            sum = sum + (values['SalesTime'] - values['PurchaseTime'])
+        else:
+            sum = sum + (datetime.datetime.now() - values['PurchaseTime'])
+    if count == 0:
+        average = 0
+    else:
+        average = (sum / count).days # 平均持有天数
+
+    return list, average
 
 def getFundHistory(fundCode, fundName, date):
     pageIndex = 1
@@ -372,15 +407,15 @@ def getFundHistory(fundCode, fundName, date):
 
 
 def spider(request):
-    # 第17页没爬
-    num = int(18)
-    while(num<70):
+    # 第17页开始没爬
+    num = int(1)
+    while(num<=16):
         list = getAllVIP(num)
         for subAccount in list:
             subAccount['user_fans_count'] = getFansCount(subAccount['passportID'])
             subAccount['GraphSpotList'],rise = getHistory(subAccount['subAccountNo'])
             subAccount['warehouseRecord'] = getAllWarehouseAdjustment(subAccount['subAccountNo'],subAccount['subAccountName'])
-            warehouseRecordList = getAllWarehouseAdjustment(subAccount['subAccountNo'], subAccount['subAccountName'])
+            warehouseRecordList, subAccount['average_holding_days'] = getAllWarehouseAdjustment(subAccount['subAccountNo'], subAccount['subAccountName'])
             warehouseAdjustmentSuccess = 0
             warehouseAdjustmentTotal = 0
             for warehouseRecord in warehouseRecordList:
@@ -419,6 +454,7 @@ def spider(request):
             saveData.AccountExistTime = data['AccountExistTime']
             saveData.AssetVol = data['AssetVol']
             saveData.level  = data['level']
+            saveData.average_holding_days = data['average_holding_days']
 
             # 处理drawdown
             drawdown = []
