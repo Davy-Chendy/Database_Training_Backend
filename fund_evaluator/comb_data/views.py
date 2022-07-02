@@ -28,11 +28,11 @@ def comb_data_detail(request,name):
     res = list(res)
     index = 0
     for data in res:
-        res[index]['drawdown'] = trans_data2(data['drawdown']['drawdown'])
+        # res[index]['drawdown'] = trans_data2(data['drawdown']['drawdown'])
         # res[index]['sharpeRatio'] = data['sharpeRatio']['sharpeRatio']
-        res[index]['sharpeRatio'] = trans_data(data['sharpeRatio']['sharpeRatio'])
-        res[index]['volatility'] = trans_data2(data['volatility']['volatility'])
-        res[index]['earnDrawdownRatio'] = trans_data(data['earnDrawdownRatio']['earnDrawdownRatio'])
+        # res[index]['sharpeRatio'] = trans_data(data['sharpeRatio']['sharpeRatio'])
+        # res[index]['volatility'] = trans_data2(data['volatility']['volatility'])
+        # res[index]['earnDrawdownRatio'] = trans_data(data['earnDrawdownRatio']['earnDrawdownRatio'])
         res[index]['rise'] = data['rise']['rise']
         num = 0
         for date in res[index]['rise']:
