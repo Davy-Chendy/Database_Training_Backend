@@ -46,27 +46,27 @@ def getAchieve(subAccountNo):
     # print(response.content.decode('utf-8'))
     result = response.json()['Data']
 
-    dict1 = {} # 近1月、近3月、近6月和近1年的最大回撤、夏普比率、波动率、收益回撤比
-    for SubIntervalIndex in result['SubIntervalIndexList']:
-        dict2 = {}
-        for SubIndex in SubIntervalIndex['SubIndexList']:
-            if SubIndex['IndexID'] == 2:
-                dict2['MaxPullback'] = SubIndex['IndexValue']
-            elif SubIndex['IndexID'] == 3:
-                dict2['SharpeRatio'] = SubIndex['IndexValue']
-            elif SubIndex['IndexID'] == 5:
-                dict2['Volatility'] = SubIndex['IndexValue']
-            elif SubIndex['IndexID'] == 11:
-                dict2['ReturnPullbackRatio'] = SubIndex['IndexValue']
-
-        if SubIntervalIndex['IntervalType'] == 4:
-            dict1['NearlyOneMonth'] = dict2
-        elif SubIntervalIndex['IntervalType'] == 3:
-            dict1['NearlyThreeMonth'] = dict2
-        elif SubIntervalIndex['IntervalType'] == 2:
-            dict1['NearlySixMonth'] = dict2
-        elif SubIntervalIndex['IntervalType'] == 1:
-            dict1['NearlyOneYear'] = dict2
+    # dict1 = {} # 近1月、近3月、近6月和近1年的最大回撤、夏普比率、波动率、收益回撤比
+    # for SubIntervalIndex in result['SubIntervalIndexList']:
+    #     dict2 = {}
+    #     for SubIndex in SubIntervalIndex['SubIndexList']:
+    #         if SubIndex['IndexID'] == 2:
+    #             dict2['MaxPullback'] = SubIndex['IndexValue']
+    #         elif SubIndex['IndexID'] == 3:
+    #             dict2['SharpeRatio'] = SubIndex['IndexValue']
+    #         elif SubIndex['IndexID'] == 5:
+    #             dict2['Volatility'] = SubIndex['IndexValue']
+    #         elif SubIndex['IndexID'] == 11:
+    #             dict2['ReturnPullbackRatio'] = SubIndex['IndexValue']
+    #
+    #     if SubIntervalIndex['IntervalType'] == 4:
+    #         dict1['NearlyOneMonth'] = dict2
+    #     elif SubIntervalIndex['IntervalType'] == 3:
+    #         dict1['NearlyThreeMonth'] = dict2
+    #     elif SubIntervalIndex['IntervalType'] == 2:
+    #         dict1['NearlySixMonth'] = dict2
+    #     elif SubIntervalIndex['IntervalType'] == 1:
+    #         dict1['NearlyOneYear'] = dict2
 
     FundHoldList = [] # 组合拥有的基金列表
     # dict1 = {} # 组合拥有的基金的类型、名字、占比
@@ -80,7 +80,8 @@ def getAchieve(subAccountNo):
             # list.append(dict2)
             FundHoldList.append(FundHold['FundName'])
 
-    return result['AccountExistTime'], result['AssetVol'], dict1, FundHoldList
+    # return result['AccountExistTime'], result['AssetVol'], dict1, FundHoldList
+    return result['AccountExistTime'], result['AssetVol'], FundHoldList
 
 def getPageVIP(pageNum):
     url = 'https://groupapi.1234567.com.cn/FundMCApi/FundMSubAccount/MSA20GetCommonTypeSubAccountList'
@@ -114,7 +115,8 @@ def getPageVIP(pageNum):
     list = []
     if result != None:
         for subAccount in result:
-            AccountExistTime, AssetVol, SubIntervalIndexDict,FundHoldList = getAchieve(subAccount['subAccountNo'])
+            # AccountExistTime, AssetVol, SubIntervalIndexDict,FundHoldList = getAchieve(subAccount['subAccountNo'])
+            AccountExistTime, AssetVol, FundHoldList = getAchieve(subAccount['subAccountNo'])
             if AccountExistTime >= 3*365:
                 dict = {}
                 dict['subAccountNo'] = subAccount['subAccountNo']
@@ -123,7 +125,7 @@ def getPageVIP(pageNum):
                 dict['passportID'] = subAccount['passportID']
                 dict['AccountExistTime'] = AccountExistTime
                 dict['AssetVol'] = AssetVol
-                dict['SubIntervalIndexDict'] = SubIntervalIndexDict
+                # dict['SubIntervalIndexDict'] = SubIntervalIndexDict
                 dict['compose'] = FundHoldList
                 list.append(dict)
                 print(dict['subAccountName'])
@@ -225,16 +227,17 @@ def getHistory(subAccountNo):
         dict = {}
         dict['data'] = GraphSpot['AccountNav']['NavDate']
         dict['value'] = GraphSpot['AccountNav']['Rate']
+        dict['Nav'] = GraphSpot['AccountNav']['Nav']
         list.append(dict)
 
-        dict2 = {}
-        timeArray = time.localtime(int(GraphSpot['AccountNav']['NavDate'][6:16]))
-        datestr = time.strftime('%Y-%m-%d', timeArray)
-        dict2['date'] = datestr
-        dict2['Nav'] = GraphSpot['AccountNav']['Nav']
-        list2.append(dict2)
+        # dict2 = {}
+        # timeArray = time.localtime(int(GraphSpot['AccountNav']['NavDate'][6:16]))
+        # datestr = time.strftime('%Y-%m-%d', timeArray)
+        # dict2['date'] = datestr
+        # dict2['Nav'] = GraphSpot['AccountNav']['Nav']
+        # list2.append(dict2)
 
-    return list, list2
+    return list
 
 def getPageWarehouseAdjustment(subAccountNo, name, TimePoint, Content_Length):
     url = 'https://jijinbaapi.eastmoney.com/FundMCApi/FundMBNew/FZH15DynamicPostList2'
@@ -297,7 +300,7 @@ def getPageWarehouseAdjustment(subAccountNo, name, TimePoint, Content_Length):
 
     return list, list2, TimePointStr, i
 
-def getAllWarehouseAdjustment(subAccountNo, name):
+def getAllWarehouseAdjustment(subAccountNo, name, createTimeStamp):
     list = [] # 卖出
     list2 = [] # 买入
     FundDict = {} # 基金字典
@@ -312,24 +315,35 @@ def getAllWarehouseAdjustment(subAccountNo, name):
         list.extend(pageList)
         list2.extend(pageList2)
 
-    for PurchaseRecord in list2[::-1]:
+    for PurchaseRecord in list2[::-1]: # 买入的基金
         if PurchaseRecord['FundCode'] not in FundDict:
             date = datetime.datetime.strptime(PurchaseRecord['dateTime'], '%Y年%m月%d日')
             FundDict[PurchaseRecord['FundCode']] = {}
             FundDict[PurchaseRecord['FundCode']]['PurchaseTime'] = date
-    for SalesRecord in list[::-1]:
-        if SalesRecord['FundCode'] in FundDict:
-            date = datetime.datetime.strptime(SalesRecord['dateTime'], '%Y年%m月%d日')
-            FundDict[SalesRecord['FundCode']]['SalesTime'] = date
+    for SalesRecord in list[::-1]: # 卖出的基金
+        date = datetime.datetime.strptime(SalesRecord['dateTime'], '%Y年%m月%d日')
+        if SalesRecord['FundCode'] not in FundDict:
+            FundDict[SalesRecord['FundCode']] = {}
+        FundDict[SalesRecord['FundCode']]['SalesTime'] = date
+        # if SalesRecord['FundCode'] in FundDict:
+        #     date = datetime.datetime.strptime(SalesRecord['dateTime'], '%Y年%m月%d日')
+        #     FundDict[SalesRecord['FundCode']]['SalesTime'] = date
 
     sum = datetime.datetime.now() - datetime.datetime.now() # 持有天数总和
     count = 0 # 参与持有天数计算计算的基金数量
     for key, values in FundDict.items():
         count = count + 1
-        if 'SalesTime' in values:
-            sum = sum + (values['SalesTime'] - values['PurchaseTime'])
+        if 'PurchaseTime' in values:
+            if 'SalesTime' in values:
+                sum = sum + (values['SalesTime'] - values['PurchaseTime'])
+            else:
+                sum = sum + (datetime.datetime.now() - values['PurchaseTime'])
         else:
-            sum = sum + (datetime.datetime.now() - values['PurchaseTime'])
+            timeArray = time.localtime(int(createTimeStamp[6:16]))
+            createDateStr = time.strftime('%Y年%m月%d日', timeArray)
+            createDate = datetime.datetime.strptime(createDateStr, '%Y年%m月%d日')
+            sum = sum + (values['SalesTime'] - createDate)
+
     if count == 0:
         average = 0
     else:
@@ -408,27 +422,31 @@ def getFundHistory(fundCode, fundName, date):
 
 def spider(request):
     # 第17页开始没爬
-    num = int(1)
-    while(num<=16):
+    num = int(6)
+    while(num<=10):
         list = getAllVIP(num)
         for subAccount in list:
             subAccount['user_fans_count'] = getFansCount(subAccount['passportID'])
-            subAccount['GraphSpotList'],rise = getHistory(subAccount['subAccountNo'])
-            subAccount['warehouseRecord'] = getAllWarehouseAdjustment(subAccount['subAccountNo'],subAccount['subAccountName'])
-            warehouseRecordList, subAccount['average_holding_days'] = getAllWarehouseAdjustment(subAccount['subAccountNo'], subAccount['subAccountName'])
+            subAccount['GraphSpotList'] = getHistory(subAccount['subAccountNo'])
+            # subAccount['warehouseRecord'] = getAllWarehouseAdjustment(subAccount['subAccountNo'],subAccount['subAccountName'])
+            warehouseRecordList, subAccount['average_holding_days'] = getAllWarehouseAdjustment \
+                (subAccount['subAccountNo'], subAccount['subAccountName'], subAccount['GraphSpotList'][0]['data'])
             warehouseAdjustmentSuccess = 0
             warehouseAdjustmentTotal = 0
             for warehouseRecord in warehouseRecordList:
                 date = datetime.datetime.strptime(warehouseRecord['dateTime'], '%Y年%m月%d日')
-                datestr = date.strftime('%Y-%m-%d')
+                datestr = date.strftime('%Y-%m-%d')  # 调仓时间
                 warehouseRecordData = getFundHistory(warehouseRecord['FundCode'], warehouseRecord['FundName'], date)
                 if len(warehouseRecordData) == 2:
-                    for dict in rise:
-                        if datestr == dict['date']:
+                    for dict in subAccount['GraphSpotList']:
+                        timeArray = time.localtime(int(dict['data'][6:16]))
+                        datestr2 = time.strftime('%Y-%m-%d', timeArray)  # 投资组合中的时间
+                        if datestr == datestr2:
                             warehouseAdjustmentTotal = warehouseAdjustmentTotal + 1
-                            if (float(rise[-1]['Nav']) - float(dict['Nav'])) / float(dict['Nav']) - (
-                                    float(warehouseRecordData[0]) - float(warehouseRecordData[1])) / float(
-                                    warehouseRecordData[1]) > 0:
+                            if (float(subAccount['GraphSpotList'][-1]['Nav']) - float(dict['Nav'])) / float(
+                                    dict['Nav']) - \
+                                    (float(warehouseRecordData[0]) - float(warehouseRecordData[1])) / float(
+                                warehouseRecordData[1]) > 0:
                                 warehouseAdjustmentSuccess = warehouseAdjustmentSuccess + 1
                             break
             if warehouseAdjustmentTotal == 0:
@@ -455,46 +473,6 @@ def spider(request):
             saveData.AssetVol = data['AssetVol']
             saveData.level  = data['level']
             saveData.average_holding_days = data['average_holding_days']
-
-            # 处理drawdown
-            drawdown = []
-            drawdown.append(data['SubIntervalIndexDict']['NearlyOneMonth']['MaxPullback'])
-            drawdown.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['MaxPullback'])
-            drawdown.append(data['SubIntervalIndexDict']['NearlySixMonth']['MaxPullback'])
-            drawdown.append(data['SubIntervalIndexDict']['NearlyOneYear']['MaxPullback'])
-            MaxPullback = {}
-            MaxPullback['drawdown'] = drawdown
-            saveData.drawdown = MaxPullback
-
-            # 处理sharpeRatio
-            sharpeRatio = []
-            sharpeRatio.append(data['SubIntervalIndexDict']['NearlyOneMonth']['SharpeRatio'])
-            sharpeRatio.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['SharpeRatio'])
-            sharpeRatio.append(data['SubIntervalIndexDict']['NearlySixMonth']['SharpeRatio'])
-            sharpeRatio.append(data['SubIntervalIndexDict']['NearlyOneYear']['SharpeRatio'])
-            SharpeRatio = {}
-            SharpeRatio['sharpeRatio'] = sharpeRatio
-            saveData.sharpeRatio = SharpeRatio
-
-            # 处理volatility
-            volatility = []
-            volatility.append(data['SubIntervalIndexDict']['NearlyOneMonth']['Volatility'])
-            volatility.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['Volatility'])
-            volatility.append(data['SubIntervalIndexDict']['NearlySixMonth']['Volatility'])
-            volatility.append(data['SubIntervalIndexDict']['NearlyOneYear']['Volatility'])
-            Volatility = {}
-            Volatility['volatility'] = volatility
-            saveData.volatility = Volatility
-
-            # 处理earnDrawdownRatio
-            earnDrawdownRatio = []
-            earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlyOneMonth']['ReturnPullbackRatio'])
-            earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlyThreeMonth']['ReturnPullbackRatio'])
-            earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlySixMonth']['ReturnPullbackRatio'])
-            earnDrawdownRatio.append(data['SubIntervalIndexDict']['NearlyOneYear']['ReturnPullbackRatio'])
-            ReturnPullbackRatio = {}
-            ReturnPullbackRatio['earnDrawdownRatio'] = earnDrawdownRatio
-            saveData.earnDrawdownRatio = ReturnPullbackRatio
 
             Compose = {}
             Compose['compose'] = data['compose']
